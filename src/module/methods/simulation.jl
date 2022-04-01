@@ -351,13 +351,14 @@ function run_simulations_trajectories(
         (norm,ir,gr) = i
         # Array for trajectories
         ps = SharedArray{Float64,2}(repetitions,generations)
+        # Path of results
+        path  = "$simulation/"*
+                "$norm-$ir$gr/"*
+                "s$(join(initial_strategies))-"*
+                "a$(game_pars[end])-bc$(game_pars[1]/game_pars[2])/"
+        !ispath("results/"*path) && mkpath("results/"*path)
+
         @sync @distributed for r in 1:repetitions
-            # Path of results
-            path  = "$simulation/"*
-                    "$norm-$ir$gr/"*
-                    "s$(join(initial_strategies))-"*
-                    "a$(game_pars[end])-bc$(game_pars[1]/game_pars[2])/"
-            !ispath("results/"*path) && mkpath("results/"*path)
             pop_file = "results/" * path * "pop_$r.jld"
             # If population doesn't exist, create it
             if !isfile(pop_file)
@@ -381,7 +382,7 @@ function run_simulations_trajectories(
                 ps[r,1:g0] = states[r,:]
             end
             # Evolve
-            for gen in 1:(generations-pop.generation)
+            for gen in 1:(generations-g0)
                 evolve!(pop)
                 track!(pop)
                 # Save state of trajectory

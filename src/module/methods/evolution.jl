@@ -209,7 +209,7 @@ function update_actions_and_fitness!(
     # New fitness
     pop.fitness .= 0
     # Round of pairwise games
-    for i in 1:pop.N-1, j in i+1:pop.N
+    for i in 1:pop.N, j in i:pop.N
         # Individual reputations
         r_ij = pop.reps_ind[i,j]
         r_ji = pop.reps_ind[j,i]
