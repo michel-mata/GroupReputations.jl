@@ -21,6 +21,25 @@ struct Game
     end
 end
 
+mutable struct Tracker
+
+    freq_strategies::Array{Float64,2}
+    fitn_strategies::Array{Float64,2}
+    pres_strategies::Array{Int64,1}
+
+    freq_probabilities::Array{Float64,2}
+    fitn_probabilities::Array{Float64,2}
+    pres_probabilities::Array{Int64,1}
+
+    cooperation::Array{Float64,2}
+    reps_grp::Array{Float64, 2}
+    reps_ind::Array{Float64, 2}
+    global_cooperation::Float64
+    agreement_ind::Float64
+    agreement_grp::Float64
+
+end
+
 mutable struct Population
     # Size
     N::Int64                            # number of individuals
@@ -30,11 +49,15 @@ mutable struct Population
     # Strategies
     initial_strategies::Array{Int64,1}      # array of allowed strategies
     evolving_strategies::Array{Int64,1}     # array of evolving strategies
-    possible_mutations::Array{Int64,1}      # array of possible mutations
-    all_probs::Array{Float64,1}         # array of possible values of p
+    num_strategies::Int64                   # number of strategies
+    # Probabilities
+    all_probs::Array{Float64,1}             # array of possible values of p
+    num_probabilities::Int64                # number of probabilities
     # Groups
-    num_groups::Int64                   # number of groups                      #NOTE: explore all
     group_sizes::Array{Float64, 1}      # array of relative group sizes         #NOTE: ternary plots, simulations
+    num_groups::Int64                   # number of groups                      #NOTE: explore all
+    # Mutation type
+    mutation::String
     # Individual reputations
     ind_reps_scale::Int32               # individual reputation type: public or private
     # Group reputations
@@ -48,24 +71,8 @@ mutable struct Population
     prev_reps_grp::Array{Int64, 2}      # matrix of previous group reputations
     fitness::Array{Float64, 1}          # array of fitness
     actions::Array{Int64, 2}            # matrix of actions
-    interactions::Array{Float64, 2}     # matrix of interactions of last generation
     probs::Array{Float64, 1}            # array of probs of acting using group reps     #NOTE: MAIN
     # Current generation
     generation::Int64
-end
-
-mutable struct Tracker
-
-    initial_generation::Int64          # initial generation of the corresponding simulation run
-    final_generation::Int64            # final generation of the corresponding simulation run
-    avg_cooperation::Array{Float64, 2} # a num_groups-by-num_groups matrix tracking average within- and between-group cooperation
-    avg_frequencies::Array{Float64, 2} # a num_groups-by-num_strategies matrix tracking average strategy frequencies per group
-    avg_reps_grp::Array{Float64, 2}    # a num_groups-by_num_groups matrix tracking average group reputations
-    avg_reps_ind::Array{Float64, 2}    # a num_groups-by_num_groups matrix tracking average individual reputations per group
-    avg_fitness::Array{Float64, 2}     # a num_groups-by-num_strategies matrix tracking average fitness of each strategy per group
-    avg_global_cooperation::Float64    # a float tracking average global cooperation
-    avg_agreement_ind::Float64         # a float tracking average agreement of individual reputations
-    avg_agreement_grp::Float64         # a float tracking average agreement of groupal reputations
-    population_path::String            # path to the stored population
-
+    tracker::Tracker
 end

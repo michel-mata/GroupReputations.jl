@@ -7,13 +7,13 @@ Function to extract strategy frequencies
 function get_frequencies(
     pop::Population
     )
-    return [ proportions(pop.strategies[ pop.membership .== g ],s:s) |> first for g in 1:pop.num_groups, s in pop.initial_strategies ]
+    return [ mean(pop.strategies[pop.membership.==g].==s) for g in 1:pop.num_groups, s in pop.initial_strategies ]
 end
 
-function get_p_frequencies(
+function get_probabilities(
     pop::Population
     )
-    return [ proportions(pop.probs[ pop.membership .== g ],s:s) |> first for g in 1:pop.num_groups, s in pop.all_probs ]
+    return [ mean(pop.probs[pop.membership.==g].==p) for g in 1:pop.num_groups, p in pop.all_probs ]
 end
 
 
@@ -25,18 +25,7 @@ Function to extract cooperation
 function get_cooperation(
     pop::Population
     )
-    return [ sum(pop.actions[ pop.membership .== g1, pop.membership .== g2]) / (pop.group_sizes[g1] * pop.group_sizes[g2] * pop.N * pop.N) for g1 in 1:pop.num_groups, g2 in 1:pop.num_groups ]
-end
-
-"""
-Function to extract average fitness
-    Returns a num_groups-by-num_strategies matrix
-    with entry (g,s) = average fitness of strat s in group g
-"""
-function get_avg_fitness(
-    pop::Population
-    )
-    return [ mean(pop.fitness[ (pop.membership .== g) .& (pop.strategies .== s) ]) for g in 1:pop.num_groups, s in pop.initial_strategies ]
+    return [ mean(pop.actions[pop.membership.==g1, pop.membership.==g2]) for g1 in 1:pop.num_groups, g2 in 1:pop.num_groups ]
 end
 
 """
@@ -47,13 +36,13 @@ Function to extract average individual and group reputations
 function get_reps_ind(
     pop::Population
     )
-    return [ mean(pop.reps_ind[ pop.membership .== g1, pop.membership .== g2 ]) for g1 in 1:pop.num_groups, g2 in 1:pop.num_groups ]
+    return [ mean(pop.reps_ind[pop.membership.==g1, pop.membership.==g2]) for g1 in 1:pop.num_groups, g2 in 1:pop.num_groups ]
 end
 
 function get_reps_grp(
     pop::Population
     )
-    return [ mean(pop.reps_grp[ pop.membership .== g1, g2 ]) for g1 in 1:pop.num_groups, g2 in 1:pop.num_groups ]
+    return [ mean(pop.reps_grp[pop.membership.==g1, g2]) for g1 in 1:pop.num_groups, g2 in 1:pop.num_groups ]
 end
 
 """
@@ -64,10 +53,48 @@ within the population
 function get_agreement_ind(
     pop::Population
     )
-    return mean(1 .- pairwise(Hamming(), pop.reps_ind, dims=1)./pop.N)
+    return mean([ mean( pop.reps_ind[i,:] .== pop.reps_ind[j,:] ) for i in 1:pop.N for j in 1:pop.N ])
 end
+
 function get_agreement_grp(
     pop::Population
     )
-    return mean(1 .- pairwise(Hamming(), pop.reps_grp, dims=1)./pop.num_groups)
+    return mean([ mean( pop.reps_grp[i,:] .== pop.reps_grp[j,:] ) for i in 1:pop.N for j in 1:pop.N ])
+end
+
+
+"""
+Update tracker during simulations
+"""
+function track!(
+    pop::Population
+    )
+
+    pop.tracker.freq_strategies     += (get_frequencies(pop) - pop.tracker.freq_strategies) / pop.generation
+
+    for (i,s) in enumerate(pop.initial_strategies)
+        if sum(pop.strategies.==s) > 0
+            pop.tracker.pres_strategies[i] += 1
+            fitn = [ mean((pop.membership .== g) .& (pop.strategies .== s)) for g in 1:pop.num_groups ]
+            pop.tracker.fitn_strategies[:,i] += (fitn - pop.tracker.fitn_strategies[:,i] ) / pop.tracker.pres_strategies[i]
+        end
+    end
+
+    pop.tracker.freq_probabilities  += (get_probabilities(pop) - pop.tracker.freq_probabilities) / pop.generation
+
+    for (i,p) in enumerate(pop.all_probs)
+        if sum(pop.probs.==p) > 0
+            pop.tracker.pres_probabilities[i] += 1
+            fitn = [ mean((pop.membership .== g) .& (pop.probs .== p)) for g in 1:pop.num_groups ]
+            pop.tracker.fitn_probabilities[:,i] += (fitn - pop.tracker.fitn_probabilities[:,i] ) / pop.tracker.pres_probabilities[i]
+        end
+    end
+
+    pop.tracker.cooperation         += (get_cooperation(pop)-pop.tracker.cooperation) / pop.generation
+    pop.tracker.reps_grp            += (get_reps_grp(pop)-pop.tracker.reps_grp) / pop.generation
+    pop.tracker.reps_ind            += (get_reps_ind(pop)-pop.tracker.reps_ind) / pop.generation
+    pop.tracker.global_cooperation  += (mean(pop.actions)-pop.tracker.global_cooperation) / pop.generation
+    pop.tracker.agreement_ind       += (get_agreement_ind(pop)-pop.tracker.agreement_ind) / pop.generation
+    pop.tracker.agreement_grp       += (get_agreement_grp(pop)-pop.tracker.agreement_grp) / pop.generation
+
 end

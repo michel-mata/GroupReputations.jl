@@ -36,7 +36,7 @@ function _ind_reputation(
     )
 
     # Select recipient
-    k = (pop.interactions[j,:] .== 1) |> findall |> sample
+    k = 1:pop.N |> sample
     # Action of the donor
     a = pop.actions[j,k]
     # Individual reputation of the recipient
@@ -62,7 +62,7 @@ function _grp_reputation(
     # Random donor from the group
     j = (pop.membership .== g_j) |> findall |> sample
     # Random recipient
-    k = (pop.interactions[j,:] .== 1) |> findall |> sample
+    k = 1:pop.N |> sample
     # Action of the donor
     a = pop.actions[j,k]
     # Group reputation of the recipient
@@ -85,7 +85,7 @@ function update_individual_reputations!(
     pop.prev_reps_ind = pop.reps_ind |> deepcopy
     pop.reps_ind .= 0
     # Public
-    if pop.ind_reps_scale == 0
+    if pop.ind_reps_scale == 2
         for j in 1:pop.N
             # Random observer
             i = sample(1:pop.N)
@@ -111,7 +111,7 @@ function update_individual_reputations!(
             pop.reps_ind[g_i,j] .= r
         end
     # Private
-    elseif pop.ind_reps_scale == 2
+    elseif pop.ind_reps_scale == 0
         for i in 1:pop.N, j in i:pop.N
             # Both views
             r_ij = _ind_reputation(pop,i,j)
@@ -139,7 +139,7 @@ function update_group_reputations!(
     pop.prev_reps_grp = pop.reps_grp |> deepcopy
     pop.reps_grp .= 0
     # Public
-    if pop.grp_reps_scale == 0
+    if pop.grp_reps_scale == 2
         for g_j in 1:pop.num_groups
             # Random observer
             i = 1:pop.N |> sample
@@ -165,7 +165,7 @@ function update_group_reputations!(
             pop.reps_grp[g_i,g_j] .= r
         end
     # Private
-    elseif pop.grp_reps_scale == 2
+    elseif pop.grp_reps_scale == 0
         for i in 1:pop.N, g_j in 1:pop.num_groups
             # Reputation of group in eyes of i
             r = _grp_reputation(pop,i,g_j)
@@ -176,24 +176,24 @@ function update_group_reputations!(
         end
     end
     # Assume good or bad for unconditional or tag-based strategies
-    for i in 1:pop.N
-        # Defectors
-        if pop.strategies[i] == 1
-            pop.reps_grp[i,:] .= 0
-        # Cooperators
-        elseif pop.strategies[i] == 2
-            pop.reps_grp[i,:] .= 1
-        # Tag-based: cooperate in-group, defect out-group
-        elseif pop.strategies[i] == 3
-            # Membership of i
-            g = pop.membership[i]
+    # This strategies are using fixed biased stereotypes
+    # Defectors
+    ALLD = pop.strategies .== 1
+    sum(ALLD)>0 && (pop.reps_grp[ALLD,:] .= 0)
+    # Cooperators
+    ALLC = pop.strategies .== 2
+    sum(ALLC)>0 && (pop.reps_grp[ALLC,:] .= 1)
+    # Tag-based: cooperate in-group, defect out-group
+    TAG = pop.strategies .== 3
+    if sum(TAG) > 0
+        for g in unique(pop.membership[TAG])
             # In-group
-            g_i = (pop.membership .== g) |> findall
+            g_i = (pop.membership[TAG] .== g) |> findall
             # Out-group
             g_j = (collect(1:pop.num_groups) .!= g) |> findall
             # Assign assumption
-            pop.reps_grp[i,g_i] .= 1
-            pop.reps_grp[i,g_j] .= 0
+            pop.reps_grp[g_i,[g]] .= 1
+            pop.reps_grp[g_i,g_j] .= 0
         end
     end
 end
@@ -209,10 +209,7 @@ function update_actions_and_fitness!(
     # New fitness
     pop.fitness .= 0
     # Round of pairwise games
-    for i in 1:pop.N, j in i:pop.N
-        # Register actual interaction
-        pop.interactions[i,j] = 1
-        pop.interactions[j,i] = 1
+    for i in 1:pop.N-1, j in i+1:pop.N
         # Individual reputations
         r_ij = pop.reps_ind[i,j]
         r_ji = pop.reps_ind[j,i]
@@ -235,9 +232,8 @@ function update_actions_and_fitness!(
         pop.fitness[j] += pop.game.b * a_ij - pop.game.c * a_ji - pop.game.α * c_ji
     end
     # Average fitness across interactions
-    for i in 1:pop.N
-        pop.fitness[i] /= sum(pop.interactions[i,:])
-    end
+    pop.fitness ./= pop.N
+    pop.fitness = exp.( pop.game.w .* pop.fitness)
 end
 
 
@@ -248,27 +244,39 @@ Update Strategies
 function update_strategies!(
     pop::Population
     )
-    # Select an individual to die
-    i = sample(1:pop.N)
-    # If strategy is evolving
-    if pop.strategies[i] in pop.evolving_strategies
-        # Select an individual to reproduce proportional to fitness
-        j = sample(1:pop.N, Weights(pop.fitness) )
-        # Imitation
-        if rand() < 1-pop.game.u_s
-            pop.strategies[i] = pop.strategies[j]
-            pop.probs[i] = pop.probs[j]
-        # Mutation
-        else
-            pop.strategies[i] = sample(pop.mutations)
-            # pDISC random probability
-            if pop.strategies[i] == 0
-                pop.probs[i] = sample(pop.all_probs)
-            # Unconditional strategies p=1.0
-            else
-                pop.probs[i] = 1.0
-            end
+    # Indexes of evolving strategies
+    evolving = (s-> s ∈ pop.evolving_strategies).(pop.strategies) |> findall
+
+    # Imitation
+    # Select two individuals to compare
+    i,j = sample(evolving,2)
+    # Compute probability of imitation
+    p = 1. / (1. + exp(-pop.game.w*(pop.fitness[j]-pop.fitness[i])))
+    # Update strategy and probability of using stypes
+    if rand() < p
+        pop.strategies[i] = pop.strategies[j]
+        pop.probs[i] = pop.probs[j]
+    end
+
+
+    # Innovation
+    if rand() < pop.game.u_s
+        # Select random strategy
+        new_strategy = sample(pop.evolving_strategies)
+        # Random global or local probability
+        if pop.mutation == "global"
+            new_prob = sample(pop.all_probs)
+        elseif pop.mutation == "local"
+            new_prob = pop.probs[i] + rand(Normal(0.0,0.05))
+            (new_prob > 1.0) && (new_prob = 1.0)
+            (new_prob < 0.0) && (new_prob = 0.0)
         end
+        # Update
+        pop.strategies[i] = new_strategy
+        # If player is not pDISC, i.e.,
+        # is ALLD,ALLC,or TAG
+        # use their biased stereotypes
+        pop.probs[i] = pop.strategies[i]==0 ? new_prob : 1.0
     end
 end
 
@@ -282,6 +290,19 @@ function evolve!(
     update_individual_reputations!(pop)
     update_group_reputations!(pop)
     update_strategies!(pop)
+
+    pop.generation += 1
+end
+
+"""
+Dynamics without evolutionary process
+"""
+function play!(
+    pop::Population
+    )
+    update_actions_and_fitness!(pop)
+    update_individual_reputations!(pop)
+    update_group_reputations!(pop)
 
     pop.generation += 1
 end
