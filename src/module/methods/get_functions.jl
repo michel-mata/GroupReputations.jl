@@ -76,7 +76,7 @@ function track!(
         if sum(pop.strategies.==s) > 0
             pop.tracker.pres_strategies[i] += 1
             fitn = mean(pop.fitness[pop.strategies .== s])
-            pop.tracker.fitn_strategies[:,i] += (fitn - pop.tracker.fitn_strategies[i] ) / pop.tracker.pres_strategies[i]
+            pop.tracker.fitn_strategies[i] += (fitn - pop.tracker.fitn_strategies[i] ) / pop.tracker.pres_strategies[i]
         end
     end
 

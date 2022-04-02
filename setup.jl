@@ -12,7 +12,7 @@ begin
     "loading workers..." |> print
     using Distributed
     num_workers = @isdefined(num_workers) ? num_workers : 0
-    nworkers() < num_workers && addprocs( num_workers - nworkers() , exeflags="--project=$(Base.active_project())" )
+    nworkers()-1 < num_workers && addprocs( num_workers+1 - nworkers() , exeflags="--project=$(Base.active_project())" )
     "done, $(nprocs()) workers loaded!" |> println
 end
 
