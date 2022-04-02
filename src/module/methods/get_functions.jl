@@ -7,13 +7,13 @@ Function to extract strategy frequencies
 function get_frequencies(
     pop::Population
     )
-    return [ mean(pop.strategies[pop.membership.==g].==s) for g in 1:pop.num_groups, s in pop.initial_strategies ]
+    return [ mean(pop.strategies.==s) for s in pop.initial_strategies ]
 end
 
 function get_probabilities(
     pop::Population
     )
-    return [ mean(pop.probs[pop.membership.==g].==p) for g in 1:pop.num_groups, p in pop.all_probs ]
+    return [ mean(pop.probs.==p) for p in pop.all_probs ]
 end
 
 
@@ -75,8 +75,8 @@ function track!(
     for (i,s) in enumerate(pop.initial_strategies)
         if sum(pop.strategies.==s) > 0
             pop.tracker.pres_strategies[i] += 1
-            fitn = [ mean((pop.membership .== g) .& (pop.strategies .== s)) for g in 1:pop.num_groups ]
-            pop.tracker.fitn_strategies[:,i] += (fitn - pop.tracker.fitn_strategies[:,i] ) / pop.tracker.pres_strategies[i]
+            fitn = mean(pop.fitness[pop.strategies .== s])
+            pop.tracker.fitn_strategies[:,i] += (fitn - pop.tracker.fitn_strategies[i] ) / pop.tracker.pres_strategies[i]
         end
     end
 
@@ -85,8 +85,8 @@ function track!(
     for (i,p) in enumerate(pop.all_probs)
         if sum(pop.probs.==p) > 0
             pop.tracker.pres_probabilities[i] += 1
-            fitn = [ mean((pop.membership .== g) .& (pop.probs .== p)) for g in 1:pop.num_groups ]
-            pop.tracker.fitn_probabilities[:,i] += (fitn - pop.tracker.fitn_probabilities[:,i] ) / pop.tracker.pres_probabilities[i]
+            fitn = mean(pop.fitness[pop.probs .== p])
+            pop.tracker.fitn_probabilities[i] += (fitn - pop.tracker.fitn_probabilities[i] ) / pop.tracker.pres_probabilities[i]
         end
     end
 

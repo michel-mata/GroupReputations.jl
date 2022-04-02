@@ -9,7 +9,6 @@ end
     using Statistics
 end
 
-
 begin
     simulation = "PIP"
     # Population size
@@ -21,8 +20,8 @@ begin
     w    = 1
     # Mutation rates
     u_s  = 1/N
-    u_p  = 1/N
-    u_a  = 1/N
+    u_p  = 0.02
+    u_a  = 0.02
     α    = 0.3
     # Game parameters
     game_pars = [b, c, w, u_s, u_p, u_a, α]
@@ -34,37 +33,43 @@ begin
     group_sizes = [0.5,0.5]
     initial_strategies = [0]
     evolving_strategies = [0]
-    residents = 0.0:0.1:1.0
-    invaders = 0.0:0.1:1.0
+    # Strategies
+    residents = 0.0
+    invaders = 1.0
     # Sweep parameters
-    ind_reps_scale = [0,1,2]
-    grp_reps_scale = [0,1,2]
+    ind_reps_scale = [1]
+    grp_reps_scale = [1]
     # Simulation parameters
     mutation = "local"
-    generations = 1_000N
+    generations = 5_000
     repetitions = 10
     norms = social_norms[1:1]
+    c1,c2,c3,c4 = palette(:tab10)[[1,end,3,end-1]]
 end
 
 
 index = [ (norm,ir,gr,p0,p1) for norm in [norms...],
                           ir in [ind_reps_scale...],
                           gr in [grp_reps_scale...],
-                          p0 in residents,
-                          p1 in invaders][:]
+                          p0 in [residents...],
+                          p1 in [invaders...]][:]
 
-for i in index
-    (norm,ir,gr,p0,p1) = i
+#for i in index
+begin
+    (norm,ir,sr,p0,p1) = index[1]
+    all_probs = [p0,p1]
     # Array for trajectories
-    ps = SharedArray{Float64,2}(repetitions,generations)
+    reps = SharedArray{Float64,2}(repetitions,8)
     # Path of results
     path  = "$simulation/"*
-            "$norm-$ir$gr/"*
+            "$norm-$ir$sr/"*
             "pr$p0-pi$p1-"*
             "a$(game_pars[end])-bc$(game_pars[1]/game_pars[2])/"
     !ispath("results/"*path) && mkpath("results/"*path)
 
-    @sync @distributed for r in 1:repetitions
+    #@sync @distributed
+    # for r in 1:repetitions
+    r=1
         pop_file = "results/" * path * "pop_$r.jld"
         # If population doesn't exist, create it
         if !isfile(pop_file)
@@ -73,90 +78,65 @@ for i in index
                                     [evolving_strategies...],
                                     [all_probs...],
                                     mutation,
-                                    ir, gr,
+                                    ir, sr,
                                     [strats_weights...],
                                     [prob_weights...],
                                     burn_in,
                                     group_sizes)
-            burn_in && [ play!(pop) for _ in 1:100N ]
-            pop.generation = 0
+            g0 = 0
         else
             # If it exists, load, check gens, load prev states
             pop = load(pop_file,"pop")
-            (pop.generation >= generations) && continue
+            g0 = pop.generation
+            # (pop.generation >= generations) && continue
             # Load previous states if exist
-            states = readdlm("data/"*path*"states.csv",',')
-            ps[r,1:g0] = states[r,:]
+            # states = readdlm("data/"*path*"states.csv",',')
+            # ps[r,1:g0] = states[r,:]
         end
 
+        gens = generations-g0
 
-        # play
-        for gen in 1:(generations-pop.generation)
+        reputations = SharedArray{Float64,2}(gens,4pop.num_groups)
+        fitness = SharedArray{Float64,2}(gens,pop.num_probabilities)
+
+        # Dynamics
+        for gen in 1:gens
             play!(pop)
             track!(pop)
-            # Save state of trajectory
-            ps[r,g0+gen] = mean(pop.probs)
+            # Save states
+            reputations[gen,:] = [pop.tracker.reps_ind...,pop.tracker.reps_grp...]
+            reputations[gen,:] = reputations[gen,[1,4,2,3,5,8,6,7]]
+
         end
         # Save Population
         save(pop_file, "pop", pop)
+        reps[r,:] = mean(reputations,dims=1)
+
+        p_r = plot(reputations[:,1:4],label=["r11" "r22" "r12" "r21"],yrange=(0,1),
+                title="reputations",frame=:box,w=2,
+                line=[:solid :dash :solid :dash],
+                color=[c1 c2 c3 c4],legend=:outerright)
+
+
+        p_s = plot(reputations[:,5:end], label=["s11" "s22" "s12" "s21"],yrange=(0,1),
+                title="stereotypes",frame=:box,w=2,
+                line=[:solid :dash :solid :dash],
+                color=[c1 c2 c3 c4],legend=:outerright)
+
+        plot(p_r,p_s,layout=(2,1))|>display
     end
     # Save trajectories
-    !ispath("data/"*path) && mkpath("data/"*path)
-    writedlm("data/"*path*"states.csv",ps,',')
+    # !ispath("data/"*path) && mkpath("data/"*path)
+    # writedlm("data/"*path*"reps.csv",reputations,',')
 end
 
 
-for p0 in residents, p1 in invaders
-    all_probs = [p0,p1]
-    ps = SharedArray{Float64,2}(repetitions,2)
+pop.tracker.fitn_probabilities
 
-    # Path for results
-    path = "$simulation/$norm-$ir$gr/pr$p0-pi$p1-a$α-bc$(b/c)/"
-    !ispath(path) && mkpath(path)
+p_r
+p_s
 
-    @sync @distributed for r in 1:repetitions
-
-        # Create or load population
-        pop_file = path*"pop_$r.jld"
-        # Check if population exists
-        if !isfile(pop_file)
-            pop = random_population_invasion(N,game_pars,norm,initial_strategies,evolving_strategies,all_probs,mutation,
-                                    ir,gr,strats_weights,prob_weights,burn_in,group_sizes)
-        g0 = pop.generation
-
-        burn_in && [ play!(pop) for _ in 1:100N ]
-        pop.generation = 0
-
-        ind_res = SharedArray{Float64,1}(generations-g0)
-        ind_inv = SharedArray{Float64,1}(generations-g0)
-        grp_res = SharedArray{Float64,1}(generations-g0)
-        grp_inv = SharedArray{Float64,1}(generations-g0)
-
-        @time for g in 1:(generations-g0)
-            update_actions_and_fitness!(pop)
-            update_individual_reputations!(pop)
-            update_group_reputations!(pop)
-
-            pop.generation += 1
-
-            f0[g] = mean(pop.reps_ind[:,1:end-1])
-            f1[g] = mean(pop.reps_ind[:,end])
-        end
-
-        ps[r,1] = mean(f0)
-        ps[r,2] = mean(f1)
-
-        save(pop_file, "pop", pop)
-
-        "$r done!"|>println
-    end
-    "saving..."|>println
-
-    path = "data/$simulation/$norm-$ir$gr/pr$p0-pi$p1-a$α-bc$(b/c)/"
-    !ispath(path) && mkpath(path)
-    writedlm(path*"states.csv",ps,',')
-    "done!"|>println
-
-    plot(ps,label="",title="res $p0 , inv $p1")|>display
-end
-end
+plot(reputations[:,1:4],label=["r11" "r22" "r12" "r21"],yrange=(0,1),
+        title="reputations",frame=:box,w=2,
+        line=[:solid :dash :solid :dash],
+        color=[c1 c2 c3 c4],legend = :outerright)

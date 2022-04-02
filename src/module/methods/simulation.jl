@@ -84,11 +84,11 @@ function random_population(
     num_strategies = length(initial_strategies)
     num_probabilities = length(all_probs)
     tracker = Tracker(
-                    zeros(Float64, num_groups, num_strategies),
-                    zeros(Float64, num_groups, num_strategies),
+                    zeros(Float64, num_strategies),
+                    zeros(Float64, num_strategies),
                     zeros(Int64, num_strategies),
-                    zeros(Float64, num_groups, num_probabilities),
-                    zeros(Float64, num_groups, num_probabilities),
+                    zeros(Float64, num_probabilities),
+                    zeros(Float64, num_probabilities),
                     zeros(Int64, num_probabilities),
                     zeros(Float64, num_groups, num_groups),
                     zeros(Float64, num_groups, num_groups),
@@ -161,11 +161,11 @@ function random_population_invasion(
     num_strategies = length(initial_strategies)
     num_probabilities = length(all_probs)
     tracker = Tracker(
-                    zeros(Float64, num_groups, num_strategies),
-                    zeros(Float64, num_groups, num_strategies),
+                    zeros(Float64, num_strategies),
+                    zeros(Float64, num_strategies),
                     zeros(Int64, num_strategies),
-                    zeros(Float64, num_groups, num_probabilities),
-                    zeros(Float64, num_groups, num_probabilities),
+                    zeros(Float64, num_probabilities),
+                    zeros(Float64, num_probabilities),
                     zeros(Int64, num_probabilities),
                     zeros(Float64, num_groups, num_groups),
                     zeros(Float64, num_groups, num_groups),

@@ -23,12 +23,12 @@ end
 
 mutable struct Tracker
 
-    freq_strategies::Array{Float64,2}
-    fitn_strategies::Array{Float64,2}
+    freq_strategies::Array{Float64,1}
+    fitn_strategies::Array{Float64,1}
     pres_strategies::Array{Int64,1}
 
-    freq_probabilities::Array{Float64,2}
-    fitn_probabilities::Array{Float64,2}
+    freq_probabilities::Array{Float64,1}
+    fitn_probabilities::Array{Float64,1}
     pres_probabilities::Array{Int64,1}
 
     cooperation::Array{Float64,2}

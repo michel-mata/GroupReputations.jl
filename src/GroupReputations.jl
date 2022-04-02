@@ -18,6 +18,7 @@ module GroupReputations
 
     include("./module/methods/get_functions.jl")
     export track!
+    export get_reps_ind, get_reps_grp
 
     include("./module/methods/simulation.jl")
     export random_population

@@ -233,7 +233,6 @@ function update_actions_and_fitness!(
     end
     # Average fitness across interactions
     pop.fitness ./= pop.N
-    pop.fitness = exp.( pop.game.w .* pop.fitness)
 end
 
 
