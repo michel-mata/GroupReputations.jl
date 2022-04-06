@@ -4,7 +4,7 @@
 #SBATCH --time=24:00:00
 #SBATCH --mail-type=all
 #SBATCH --mail-user=sm75@princeton.edu
-#SBATCH --array=2401-2600
+#SBATCH --array=2401-2700
 #SBATCH --output=out/%A-%a.out
 
 echo "My SLURM_ARRAY_JOB_ID is $SLURM_ARRAY_JOB_ID."
