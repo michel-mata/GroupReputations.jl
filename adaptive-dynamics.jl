@@ -71,7 +71,7 @@
     !ispath("results/"*path) && mkpath("results/"*path)
     !ispath("data/"*path) && mkpath("data/"*path)
 
-    probs = SharedArray{Float64,2}(generations,repetitions)
+    probabilities = SharedArray{Float64,2}(generations)
 
     pop_file = "results/" * path * "pop_$r.jld"
     # If population doesn't exist, create it
