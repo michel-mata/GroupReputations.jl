@@ -45,7 +45,7 @@ begin
     initial_strategies = [0]
     evolving_strategies = [0]
     # Strategies
-    initial_p = 0.1#:0.2:1.0
+    initial_p = 0.3#:0.2:1.0
     # Sweep parameters
     ind_reps_scale = [2,1,0]
     grp_reps_scale = [2,1,0]
