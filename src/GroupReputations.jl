@@ -15,7 +15,7 @@ module GroupReputations
     export update_actions_and_fitness!
     export update_strategies!
     export evolve!
-    export play!
+    export play!, imitate!, innovate!
 
     # Measuring functions
     include("./module/methods/get_functions.jl")
@@ -27,7 +27,6 @@ module GroupReputations
     export random_population
     export random_population_invasion
     export run_simulations
-    export run_simulations_trajectories
     export summarize
 
     # Constant variables

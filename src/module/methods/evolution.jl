@@ -206,8 +206,7 @@ Update Actions
 function update_actions_and_fitness!(
     pop::Population
     )
-    # New fitness
-    pop.fitness .= 0
+
     # Round of pairwise games
     for i in 1:pop.N, j in i:pop.N
         # Individual reputations
@@ -228,35 +227,43 @@ function update_actions_and_fitness!(
         pop.actions[i,j] = a_ij
         pop.actions[j,i] = a_ji
         # Payoff of interaction
-        pop.fitness[i] += pop.game.b * a_ji - pop.game.c * a_ij - pop.game.α * c_ij
-        pop.fitness[j] += pop.game.b * a_ij - pop.game.c * a_ji - pop.game.α * c_ji
+        pop.fitness[i] += pop.game.b * a_ji - pop.game.c * a_ij - pop.game.a * c_ij
+        pop.fitness[j] += pop.game.b * a_ij - pop.game.c * a_ji - pop.game.a * c_ji
     end
-    # Average fitness across interactions
-    pop.fitness ./= pop.N
 end
 
 
-#TODO: mix this
 """
 Update Strategies
 """
-function update_strategies!(
+function imitate!(
     pop::Population
     )
     # Indexes of evolving strategies
     evolving = (s-> s ∈ pop.evolving_strategies).(pop.strategies) |> findall
 
     # Imitation
-    # Select two individuals to compare
-    i,j = sample(evolving,2)
-    # Compute probability of imitation
-    p = 1. / (1. + exp(-pop.game.w*(pop.fitness[j]-pop.fitness[i])))
-    # Update strategy and probability of using stypes
-    if rand() < p
-        pop.strategies[i] = pop.strategies[j]
-        pop.probs[i] = pop.probs[j]
+    for _ in 1:pop.imitation_steps
+        # Select two individuals to compare
+        i,j = sample(evolving,2)
+        # Compute probability of imitation
+        p = 1. / (1. + exp(-pop.game.w*(pop.fitness[j]-pop.fitness[i])))
+        # Update strategy and probability of using stypes
+        if rand() < p
+            # "$(pop.probs[j] >= pop.probs[i] ? "+" : "-")"|>print
+            # "\t$(round(pop.probs[j];digits=2)) replacing $(round(pop.probs[i];digits=2)) \t\t $(round(p;digits=2))"|>println
+            pop.strategies[i] = pop.strategies[j]
+            pop.probs[i] = pop.probs[j]
+        end
     end
+end
 
+function innovate!(
+    pop::Population
+    )
+    # Indexes of evolving strategies
+    evolving = (s-> s ∈ pop.evolving_strategies).(pop.strategies) |> findall
+    i = sample(evolving)
 
     # Innovation
     if rand() < pop.game.u_s
@@ -280,28 +287,34 @@ function update_strategies!(
 end
 
 """
-Generation of evolutionary process
-"""
-function evolve!(
-    pop::Population
-    )
-    update_actions_and_fitness!(pop)
-    update_individual_reputations!(pop)
-    update_group_reputations!(pop)
-    update_strategies!(pop)
-
-    pop.generation += 1
-end
-
-"""
 Dynamics without evolutionary process
 """
 function play!(
     pop::Population
     )
-    update_actions_and_fitness!(pop)
-    update_individual_reputations!(pop)
-    update_group_reputations!(pop)
+    # New fitness
+    pop.fitness .= 0
+    # Play rounds of games
+    for _ in 1:pop.interaction_steps
+        update_actions_and_fitness!(pop)
+        update_individual_reputations!(pop)
+        update_group_reputations!(pop)
+    end
+    # Average fitness
+    pop.fitness ./= pop.interaction_steps
+end
 
+"""
+Generation of evolutionary process
+"""
+function evolve!(
+    pop::Population
+    )
+
+    play!(pop)
+    imitate!(pop)
+    innovate!(pop)
+
+    # Count generation
     pop.generation += 1
 end

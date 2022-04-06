@@ -6,7 +6,7 @@ struct Game
     u_s::Float64    # mutation rate
     u_p::Float64    # performance error
     u_a::Float64    # assignment error
-    α::Float64      # cost for using individual reputation
+    a::Float64      # cost for using individual reputation
 
     function Game(
         b::Float64,
@@ -15,9 +15,9 @@ struct Game
         u_s::Float64,
         u_p::Float64,
         u_a::Float64,
-        α::Float64
+        a::Float64
         )
-        return new(b, c, w, u_s, u_p, u_a, α)
+        return new(b, c, w, u_s, u_p, u_a, a)
     end
 end
 
@@ -46,6 +46,8 @@ mutable struct Population
     # Interactions
     game::Game                          # game parameters
     norm::String                        # social norm for reps updating
+    interaction_steps::Int64            # number of pairwise rounds of games
+    imitation_steps::Int64              # number of updating events
     # Strategies
     initial_strategies::Array{Int64,1}      # array of allowed strategies
     evolving_strategies::Array{Int64,1}     # array of evolving strategies

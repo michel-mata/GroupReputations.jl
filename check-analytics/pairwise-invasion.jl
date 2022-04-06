@@ -76,7 +76,7 @@ for ir in [ind_reps_scale...], sr in [grp_reps_scale...]
                                         burn_in,
                                         group_sizes)
                 g0 = 0
-                burn_in && [ play!(pop) for _ in 1:100N]
+                # burn_in && [ play!(pop) for _ in 1:100N]
             else
                 # If it exists, load, check gens, load prev states
                 pop = load(pop_file,"pop")

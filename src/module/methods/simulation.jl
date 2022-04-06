@@ -47,6 +47,8 @@ function random_population(
     N::Int64,
     game_pars::Array{Float64,1},
     norm::String,
+    interaction_steps::Int64,
+    imitation_steps::Int64,
     initial_strategies::Array{Int64,1},
     evolving_strategies::Array{Int64,1},
     all_probs::Array{Float64,1},
@@ -55,7 +57,6 @@ function random_population(
     grp_reps_scale::Int64,
     strats_weights::Array{Float64,1},
     prob_weights::Array{Float64,1},
-    burn_in::Bool,
     group_sizes::Array{Float64,1}
     )
     # Get Game
@@ -96,7 +97,7 @@ function random_population(
                     0.0, 0.0, 0.0
                     )
     # Get population
-    pop = Population( N, game, norm,
+    pop = Population( N, game, norm, interaction_steps, imitation_steps,
                 initial_strategies, evolving_strategies, num_strategies,
                 all_probs, num_probabilities, group_sizes, num_groups,
                 mutation, ind_reps_scale, grp_reps_scale,
@@ -104,8 +105,7 @@ function random_population(
                 reps_ind, reps_grp, prev_reps_ind, prev_reps_grp,
                 fitness, actions, probs, generation,tracker
                 )
-    # Burn-in transient
-    burn_in && [ evolve!(pop) for _ in 1:100N ]
+
     pop.generation = 0
 
     return pop
@@ -120,6 +120,8 @@ function random_population_invasion(
     N::Int64,
     game_pars::Array{Float64,1},
     norm::String,
+    interaction_steps::Int64,
+    imitation_steps::Int64,
     initial_strategies::Array{Int64,1},
     evolving_strategies::Array{Int64,1},
     all_probs::Array{Float64,1},
@@ -128,7 +130,6 @@ function random_population_invasion(
     grp_reps_scale::Int64,
     strats_weights::Array{Float64,1},
     prob_weights::Array{Float64,1},
-    burn_in::Bool,
     group_sizes::Array{Float64,1}
     )
     # Get Game
@@ -173,7 +174,7 @@ function random_population_invasion(
                     0.0, 0.0, 0.0
                     )
     # Get population
-    pop = Population( N, game, norm,
+    pop = Population( N, game, norm, interaction_steps, imitation_steps,
                 initial_strategies, evolving_strategies, num_strategies,
                 all_probs, num_probabilities, group_sizes, num_groups,
                 mutation, ind_reps_scale, grp_reps_scale,
@@ -181,7 +182,7 @@ function random_population_invasion(
                 reps_ind, reps_grp, prev_reps_ind, prev_reps_grp,
                 fitness, actions, probs, generation,tracker
                 )
-    # Burn-in transient
+
     pop.generation = 0
 
     return pop
@@ -198,15 +199,14 @@ function simulate!(
             game_pars::Array{Float64,1},
             norm::String,
             type::String,
-            initial_strategies,
-            evolving_strategies,
+            initial_strategies::Array{Int64,1},
+            evolving_strategies::Array{Int64,1},
             p,
             mutation,
             ir,
             gr,
             strats_weights = 1.0,
             prob_weights = 1.0,
-            burn_in = true,
             group_sizes = [0.5,0.5]
     )
 
@@ -214,6 +214,8 @@ function simulate!(
     if !isfile(pop_file)
         # If not, create it
         pop  = random_population( N, game_pars, norm,
+                    interaction_steps,
+                    imitation_steps,
                     [initial_strategies...],
                     [evolving_strategies...],
                     [p...],
@@ -221,7 +223,6 @@ function simulate!(
                     ir, gr,
                     [strats_weights...],
                     [prob_weights...],
-                    burn_in,
                     group_sizes)
     else
         # If yes, with less generations than asked, load it
@@ -256,15 +257,14 @@ function run_simulations(
             game_pars::Array{Float64,1},
             social_norms::Array{String,1},
             type::String,
-            initial_strategies,
-            evolving_strategies,
+            initial_strategies::Array{Int64,1},
+            evolving_strategies::Array{Int64,1},
             all_probs,
             mutation,
             ind_reps_scale,
             grp_reps_scale,
             strats_weights = 1.0,
             prob_weights = 1.0,
-            burn_in = true,
             group_sizes = [0.5,0.5]
         )
 
@@ -287,7 +287,7 @@ function run_simulations(
             pop_file = path * "pop_$r.jld"
 
             simulate!(pop_file,generations, N, game_pars, norm,
-                type, initial_strategies, evolving_strategies,
+                initial_strategies, evolving_strategies,
                 p, mutation, ir, gr,
                 strats_weights, prob_weights, burn_in, group_sizes
             )
@@ -309,92 +309,13 @@ function run_simulations(
             pop_file = path * "pop_$r.jld"
 
             simulate!(pop_file,generations, N, game_pars, norm,
-                type, initial_strategies, evolving_strategies,
+                initial_strategies, evolving_strategies,
                 all_probs, mutation, ir, gr,
                 strats_weights, prob_weights, burn_in, group_sizes
             )
         end
     end
 
-end
-
-
-"""
-Run simulations in parallel saving trajectories
-of mean probability of the population
-"""
-function run_simulations_trajectories(
-            simulation::String,
-            generations::Int64,
-            repetitions::Int64,
-            N::Int64,
-            game_pars::Array{Float64,1},
-            social_norms::Array{String,1},
-            initial_strategies,
-            evolving_strategies,
-            all_probs,
-            mutation,
-            ind_reps_scale,
-            grp_reps_scale,
-            strats_weights = 1.0,
-            prob_weights = 1.0,
-            burn_in = false,
-            group_sizes = [0.5,0.5]
-        )
-
-
-    index = [ (norm,ir,gr) for norm in [social_norms...],
-                              ir in [ind_reps_scale...],
-                              gr in [grp_reps_scale...]][:]
-
-    for i in index
-        (norm,ir,gr) = i
-        # Array for trajectories
-        ps = SharedArray{Float64,2}(repetitions,generations)
-        # Path of results
-        path  = "$simulation/"*
-                "$norm-$ir$gr/"*
-                "s$(join(initial_strategies))-"*
-                "a$(game_pars[end])-bc$(game_pars[1]/game_pars[2])/"
-        !ispath("results/"*path) && mkpath("results/"*path)
-
-        @sync @distributed for r in 1:repetitions
-            pop_file = "results/" * path * "pop_$r.jld"
-            # If population doesn't exist, create it
-            if !isfile(pop_file)
-                pop  = random_population( N, game_pars, norm,
-                                        [initial_strategies...],
-                                        [evolving_strategies...],
-                                        [all_probs...],
-                                        mutation,
-                                        ir, gr,
-                                        [strats_weights...],
-                                        [prob_weights...],
-                                        burn_in,
-                                        group_sizes)
-            else
-                # If it exists, load, check gens, load prev states
-                pop = load(pop_file,"pop")
-                (pop.generation >= generations) && continue
-                g0 = pop.generation
-                # Load previous states if exist
-                states = readdlm("data/"*path*"states.csv",',')
-                ps[r,1:g0] = states[r,:]
-            end
-            # Evolve
-            for gen in 1:(generations-g0)
-                evolve!(pop)
-                track!(pop)
-                # Save state of trajectory
-                ps[r,g0+gen] = mean(pop.probs)
-            end
-            # Save Population
-            save(pop_file, "pop", pop)
-        end
-        # Save trajectories
-        !ispath("data/"*path) && mkpath("data/"*path)
-        writedlm("data/"*path*"states.csv",ps,',')
-    end
 end
 
 
@@ -406,8 +327,8 @@ function extract(
             simulation::String,
             repetitions::Int64,
             game_pars::Array{Float64,1},
-            type,
-            initial_strategies,
+            type::String,
+            initial_strategies::Array{Int64,1},
             norm, p, all_probs,
             ir, gr, group_sizes
         )
@@ -491,8 +412,8 @@ function summarize(
             game_pars::Array{Float64,1},
             social_norms::Array{String,1},
             type::String,
-            initial_strategies,
-            evolving_strategies,
+            initial_strategies::Array{Int64,1},
+            evolving_strategies::Array{Int64,1},
             all_probs,
             ind_reps_scale,
             grp_reps_scale,
