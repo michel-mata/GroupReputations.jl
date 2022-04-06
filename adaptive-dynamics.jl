@@ -40,10 +40,10 @@
     initial_strategies = [0]
     evolving_strategies = [0]
     # Strategies
-    initial_p = 0.5:0.2:1.0
+    initial_p = 0.1:0.2:1.0
     # Sweep parameters
-    ind_reps_scale = [1]
-    grp_reps_scale = [1]
+    ind_reps_scale = [0,1,2]
+    grp_reps_scale = [0,1,2]
     # Simulation parameters
     mutation = "local"
     interaction_steps = N^2
