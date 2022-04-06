@@ -42,8 +42,8 @@
     # Strategies
     initial_p = 0.5:0.2:1.0
     # Sweep parameters
-    ind_reps_scale = [2]
-    grp_reps_scale = [2]
+    ind_reps_scale = [1]
+    grp_reps_scale = [1]
     # Simulation parameters
     mutation = "local"
     interaction_steps = N^2

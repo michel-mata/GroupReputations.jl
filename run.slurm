@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=adaptive-dynamics
+#SBATCH --job-name=adaptive-dynamics-grp
 #SBATCH --mem=32G
 #SBATCH --time=24:00:00
 #SBATCH --mail-type=all
