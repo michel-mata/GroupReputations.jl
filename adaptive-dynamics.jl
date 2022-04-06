@@ -14,7 +14,7 @@
 "done!" |> println
 
 "declaring variables..." |> print
-    # const id = parse(Int64, ENV["SLURM_ARRAY_TASK_ID"])
+    const id = parse(Int64, ENV["SLURM_ARRAY_TASK_ID"])
     # Simulation
     simulation = "adaptive-dynamics"
     # Population size
@@ -55,64 +55,64 @@
                               ir in [ind_reps_scale...],
                               sr in [grp_reps_scale...],
                               p0 in [initial_p...]][:]
-#     (r,ir,sr,p0) = index[id]
-# "done!" |> println
-#
-#
-# "running -- reps$ir stpyes$sr -- ic $p0" |> println
-#     all_probs = [p0]
-#
-#     # Path of results
-#     path  = "$simulation/"*
-#             "$norm-$ir$sr/"*
-#             "pr$p0-"*
-#             "a$(game_pars[end])-"*
-#             "bc$(game_pars[1]/game_pars[2])/"
-#     !ispath("results/"*path) && mkpath("results/"*path)
-#     !ispath("data/"*path) && mkpath("data/"*path)
-#
-#     probs = SharedArray{Float64,2}(generations,repetitions)
-#
-#     pop_file = "results/" * path * "pop_$r.jld"
-#     # If population doesn't exist, create it
-#     if !isfile(pop_file)
-#         pop  = random_population( N, game_pars, norm,
-#                                 interaction_steps,
-#                                 imitation_steps,
-#                                 [initial_strategies...],
-#                                 [evolving_strategies...],
-#                                 [all_probs...],
-#                                 mutation,
-#                                 ir, sr,
-#                                 [strats_weights...],
-#                                 [prob_weights...],
-#                                 group_sizes)
-#         g0 = pop.generation
-#     else
-#         # If it exists, load
-#         pop = load(pop_file,"pop")
-#         # More gens than requested break
-#         if pop.generation > generations
-#             "$ir-$sr-$p0-$r done! -- "|>println
-#             continue
-#             "error"|>println
-#         end
-#         # Less gens, load old probabilities
-#         old_probs = readdlm("results/"*path*"probabilities_$r.csv",',')
-#         g0 = pop.generation
-#         probabilities[1:g0] = old_probs
-#     end
-#
-#     # Dynamics
-#     @time for gen in 1:(generations-g0)
-#         evolve!(pop)
-#         track!(pop)
-#         # Save states
-#         probabilities[gen+g0] = mean(pop.probs)
-#     end
-#
-#     # Save population
-#     save("results/"*path*"pop_$r.jld", "pop", pop)
-#     # Save trajectories
-#     writedlm("results/"*path*"probabilities_$r.csv",probabilities,',')
-# "done!" |> println
+    (r,ir,sr,p0) = index[id]
+"done!" |> println
+
+
+"running -- reps$ir stpyes$sr -- ic $p0" |> println
+    all_probs = [p0]
+
+    # Path of results
+    path  = "$simulation/"*
+            "$norm-$ir$sr/"*
+            "pr$p0-"*
+            "a$(game_pars[end])-"*
+            "bc$(game_pars[1]/game_pars[2])/"
+    !ispath("results/"*path) && mkpath("results/"*path)
+    !ispath("data/"*path) && mkpath("data/"*path)
+
+    probs = SharedArray{Float64,2}(generations,repetitions)
+
+    pop_file = "results/" * path * "pop_$r.jld"
+    # If population doesn't exist, create it
+    if !isfile(pop_file)
+        pop  = random_population( N, game_pars, norm,
+                                interaction_steps,
+                                imitation_steps,
+                                [initial_strategies...],
+                                [evolving_strategies...],
+                                [all_probs...],
+                                mutation,
+                                ir, sr,
+                                [strats_weights...],
+                                [prob_weights...],
+                                group_sizes)
+        g0 = pop.generation
+    else
+        # If it exists, load
+        pop = load(pop_file,"pop")
+        # More gens than requested break
+        if pop.generation > generations
+            "$ir-$sr-$p0-$r done! -- "|>println
+            continue
+            "error"|>println
+        end
+        # Less gens, load old probabilities
+        old_probs = readdlm("results/"*path*"probabilities_$r.csv",',')
+        g0 = pop.generation
+        probabilities[1:g0] = old_probs
+    end
+
+    # Dynamics
+    @time for gen in 1:(generations-g0)
+        evolve!(pop)
+        track!(pop)
+        # Save states
+        probabilities[gen+g0] = mean(pop.probs)
+    end
+
+    # Save population
+    save("results/"*path*"pop_$r.jld", "pop", pop)
+    # Save trajectories
+    writedlm("results/"*path*"probabilities_$r.csv",probabilities,',')
+"done!" |> println
