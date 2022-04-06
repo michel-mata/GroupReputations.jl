@@ -51,7 +51,6 @@
     generations = 2N^2
     repetitions = 100
     norm = social_norms[1]
-    c1,c2,c3,c4,r1,r2 = palette(:tab10)[[1,end,3,end-1,2,5]]
     index = [ (r,ir,sr,p0)  for r in 1:repetitions,
                               ir in [ind_reps_scale...],
                               sr in [grp_reps_scale...],
