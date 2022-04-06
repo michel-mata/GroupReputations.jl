@@ -94,7 +94,7 @@
         # More gens than requested break
         if pop.generation > generations
             "$ir-$sr-$p0-$r done! -- "|>println
-            @goto escape_label
+            exit()
             "error"|>println
         end
         # Less gens, load old probabilities
@@ -115,5 +115,4 @@
     save("results/"*path*"pop_$r.jld", "pop", pop)
     # Save trajectories
     writedlm("results/"*path*"probabilities_$r.csv",probabilities,',')
-    @label escape_label
 "done!" |> println
