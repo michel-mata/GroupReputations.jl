@@ -48,7 +48,7 @@
     mutation = "local"
     interaction_steps = N^2
     imitation_steps = 5
-    generations = 6N^2
+    generations = 12N^2
     repetitions = 100
     norm = social_norms[1]
     index = [ (r,ir,sr,p0)  for r in 1:repetitions,
