@@ -14,7 +14,7 @@
 "done!" |> println
 
 "declaring variables..." |> print
-    const id = 2400+parse(Int64, ENV["SLURM_ARRAY_TASK_ID"])
+    const id = parse(Int64, ENV["SLURM_ARRAY_TASK_ID"])
     # Simulation
     simulation = "adaptive-dynamics"
     # Population size
@@ -42,13 +42,13 @@
     # Strategies
     initial_p = 0.1:0.2:1.0
     # Sweep parameters
-    ind_reps_scale = [0,1,2]
-    grp_reps_scale = [0,1,2]
+    ind_reps_scale = [2]
+    grp_reps_scale = [2]
     # Simulation parameters
     mutation = "local"
     interaction_steps = N^2
     imitation_steps = 5
-    generations = 2N^2
+    generations = 6N^2
     repetitions = 100
     norm = social_norms[1]
     index = [ (r,ir,sr,p0)  for r in 1:repetitions,
